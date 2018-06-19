@@ -1,0 +1,74 @@
+/*
+* 测试gradle
+*
+* yujq
+* */
+
+apply from:"utils.gradle"
+
+//执行的命令：gradlew -q gradleTest
+task gradleTest << {
+
+    myHello()
+
+//xml文件读写测试
+    def resources = new XmlParser().parse(new File("app/src/main/res/values/config_args.xml"))
+    resources.string.find{ stringItem ->
+        if( stringItem.@name == "app_name" ){
+            println "app name : ${stringItem.text()}"
+        }
+    }
+
+
+    println "changing..."
+    writeArgToResourceValue("CSDN","http://blog.csdn.net","@mipmap/app_launcher","@mipmap/splash_img")
+    println "changed !"
+
+}
+
+task taskA << {
+    println "this is task A"
+}
+
+task taskB << {
+    println "this is task B"
+}
+
+tasks["taskA"].doLast( tasks["taskB"].actions )
+
+//gradlew -q copyFileTest
+task copyFileTest << {
+//    def sourceFile = new File("app/src/main/res/mipmap-hdpi/ic_launcher.png")
+    def sourceFile = new File("F:/img/mAppLauncher.png")
+    def desFile = new File("app/src/main/res/mipmap/m_app_launcher.png")
+    copyFile(sourceFile,desFile,true)
+}
+
+//gradlew -q deleteFileTest
+task deleteFileTest << {
+//    removeFile( new File("app/src/main/res/mipmap/m_app_launcher.png") )
+    removeFile( new File("app/src/main/res/mipmap") )
+}
+
+//gradlew -q exeCmdTest
+task exeCmdTest << {
+    println exeCmd("gradlew.bat -v")
+}
+
+//gradlew -q testWriteSignInfo
+task testWriteSignInfo << {
+    def storeFile = "F:/keystore/demo.keystore"
+    def storePassword = "123456"
+    def keyPassword = "123456"
+    def keyAlias = "mKeyStore"
+    writeSignInfo(storeFile, storePassword, keyPassword, keyAlias)
+}
+
+//gradlew -q testReadSignInfo
+task testReadSignInfo << {
+//    File xmlFile = new File("keystore_info.xml")
+//    if( !xmlFile.exists() ) { throw new FileNotFoundException() }
+//    def signInfo = new XmlParser().parse(xmlFile)
+//    println "storeFile=${signInfo.storeFile.text()}"
+//    println "storePassword=${signInfo.storePassword.text()}"
+}

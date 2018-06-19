@@ -1,0 +1,192 @@
+apply plugin: 'com.android.application'
+apply from: "../utils.gradle"
+
+//生成证书
+//keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -dname "cn=Mark Jones, ou=JavaSoft, o=Sun, c=US" -storepass 123456 -keypass 123456
+//gradlew -q -P keystore=mKeystore.keystore -P alias=minstone -P username=minstone -P company=minstone -P organization=minstone -P countrycode=cn -P storepass=123456 -P keypass=123456 app:genKeystore
+task genKeystore << {
+    String cmd = "keytool -genkey -v -keystore $keystore -alias $alias -keyalg RSA -keysize 2048 -validity 10000 -dname \"cn=$username, ou=$company, o=$organization, c=$countrycode\" -storepass $storepass -keypass $keypass"
+    def isExeSucceed = exeCmd(cmd)
+    if (isExeSucceed) {
+        println "package succeed !"
+    } else {
+        println "package fail !"
+    }
+}
+
+//自动生成证书再进行打包
+// gradlew -q -P appName=mAppName -P webHomeUrl=http://www.csdn.com -P appLauncherImgPath=F:/img/mAppLauncher.png -P splashImgPath=F:/img/mSplashImg.png -P keystore=F:/keystore/mKeystore.keystore -P alias=minstone -P username=minstone -P company=minstone -P organization=minstone -P countrycode=cn -P storepass=123456 -P keypass=123456 app:inputArgsAutoPackage
+//注意store是证书库密钥，要与自己之前设置的证书库密钥一致
+ task inputArgsAutoPackage << {
+
+    println "gen keystore..."
+    String genKeystoreCmd = "gradlew.bat -q -P keystore=$keystore -P alias=$alias -P username=$username -P company=$company -P organization=$organization -P countrycode=$countrycode -P storepass=$storepass -P keypass=$keypass app:genKeystore"
+    def result = exeCmd(genKeystoreCmd)
+    if (result) {
+        println "gen keystore succeed !"
+    } else {
+        println "gen keystore fail !"
+    }
+
+    println "changing..."
+    String changingCmd = "gradlew.bat -P appName=$appName -P webHomeUrl=$webHomeUrl -P appLauncherImgPath=$appLauncherImgPath -P splashImgPath=$splashImgPath app:changing"
+    def changingResult = exeCmd(changingCmd)
+    if (changingResult) {
+        println "changing succeed !"
+    } else {
+        println "changing fail !"
+    }
+
+    // 将签名相关的参数写入keystore.xml
+    println "write sign info to keystore.xml"
+    writeSignInfo(keystore, storepass, keypass, alias)
+    println "write succeed."
+
+    // 清除上一次打包的结果
+//   println "cleaning the last package"
+//   exeCmd("gradlew.bat clean")
+//   println "clean done"
+
+    // 执行打包命令
+    println "packaging..."
+//    String result = exeCmd("gradlew.bat packageDebug")
+    def isExeSucceed = exeCmd("gradlew.bat assembleRelease")
+    if (isExeSucceed) {
+        println "package succeed !"
+    } else {
+        println "package fail !"
+    }
+
+}
+
+
+// 指定证书进行打包
+// gradlew -q -P appName=mAppName -P webHomeUrl=http://www.sina.com -P appLauncherImgPath=F:/img/mAppLauncher.png -P splashImgPath=F:/img/mSplashImg.png -P storeFile=F:/keystore/demo.keystore -P storePassword=123456 -P keyPassword=123456 -P keyAlias=mKeyStore app:inputArgsToPackage
+task inputArgsToPackage << {
+    println "input args:"
+    println "appName=$appName"
+    println "webHomeUrl=$webHomeUrl"
+    println "appLauncherImgPath=$appLauncherImgPath"
+    println "splashImgPath=$splashImgPath"
+    println "storeFile=$storeFile"
+    println "storePassword=$storePassword"
+    println "keyPassword=$keyPassword"
+    println "keyAlias=$keyAlias"
+
+    println "changing..."
+    String changingCmd = "gradlew.bat -P appName=$appName -P webHomeUrl=$webHomeUrl -P appLauncherImgPath=$appLauncherImgPath -P splashImgPath=$splashImgPath app:changing"
+    def changingResult = exeCmd(changingCmd)
+    if (changingResult) {
+        println "changing succeed !"
+    } else {
+        println "changing fail !"
+    }
+
+    // 将签名相关的参数写入keystore.xml
+    println "write sign info to keystore.xml"
+    writeSignInfo(storeFile, storePassword, keyPassword, keyAlias)
+    println "write succeed."
+
+// 清除上一次打包的结果
+//   println "cleaning the last package"
+//   exeCmd("gradlew.bat clean")
+//   println "clean done"
+
+// 执行打包命令
+    println "packaging..."
+//    String result = exeCmd("gradlew.bat packageDebug")
+    def isExeSucceed = exeCmd("gradlew.bat assembleRelease")
+    if (isExeSucceed) {
+        println "package succeed !"
+    } else {
+        println "package fail !"
+    }
+}
+
+// gradlew.bat -P appName=mAppName -P webHomeUrl=http://www.sina.com -P appLauncherImgPath=F:/img/mAppLauncher.png -P splashImgPath=F:/img/mSplashImg.png app:changing
+task changing << {
+    //    复制app图标到mipmap文件夹
+    def appLauncherFileName = "m_app_launcher"
+    println "copy app launcher file..."
+    def sourceFile = new File(appLauncherImgPath)
+    def desFile = new File("app/src/main/res/mipmap/${appLauncherFileName}.png")
+    copyFile(sourceFile, desFile, true)
+    println "copy succeed."
+
+// 复制启动图片到mipmap文件夹
+    def splashImgFileName = "m_splash_img"
+    println "copy splash img..."
+    copyFile(new File(splashImgPath), new File("app/src/main/res/mipmap/${splashImgFileName}.png"), true)
+    println "copy succeed."
+
+//    将参数appName,webHomeUrl,appLauncher,splashImg写入resource value文件
+    println "write args to resource value..."
+    writeArgToResourceValue(appName, webHomeUrl, "@mipmap/${appLauncherFileName}", "@mipmap/${splashImgFileName}")
+    println "write succeed."
+
+}
+
+//从keystore_info.xml读取签名文件的信息
+def keystoreFile = rootProject.file("keystore_info.xml")
+def signInfo = new XmlParser().parse(keystoreFile)
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+    defaultConfig {
+        applicationId "cn.com.minstone.webproject"
+        minSdkVersion 16
+        targetSdkVersion 16
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        // Specifies the ABI configurations of your native
+        // libraries Gradle should build and package with your APK.
+        ndk {
+            abiFilters "armeabi", "armeabi-v7a", "x86", "mips"
+        }
+    }
+
+    //    签名
+    signingConfigs {
+        release {
+//           证书文件
+            storeFile file(signInfo.storeFile.text())
+//           证书库的密码
+            storePassword signInfo.storePassword.text()
+//           证书密码
+            keyPassword signInfo.keyPassword.text()
+//           别名
+            keyAlias signInfo.keyAlias.text()
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            //打包时启用签名
+            signingConfig signingConfigs.release
+        }
+    }
+
+    dataBinding {
+        enabled = true
+    }
+
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.3.1'
+//    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile "com.android.support:support-v4:25.3.1"
+    testCompile 'junit:junit:4.12'
+
+    //图片加载库
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+}

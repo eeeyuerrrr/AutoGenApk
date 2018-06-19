@@ -1,0 +1,88 @@
+/*
+* gradle utils,常用的一些方法
+* yujq
+* */
+
+println "apply from rootPath utils.gradle in project ${project.name}"
+
+ext.myHello = {
+    println "hello"
+}
+
+/*
+* 执行命令行
+*/
+ext.exeCmd = { cmd ->
+    Process p = cmd.execute()
+    p.consumeProcessOutput( System.out ,System.err )
+//    p.waitForProcessOutput( System.out ,System.err )
+    p.waitFor()
+//    println "${p.text}"
+    return !p.exitValue()
+}
+
+/*
+ * 将打包前要改变的参数放到resource value文件中
+ */
+ext.writeArgToResourceValue = { appName, webHomeUrl, appLauncher, splashImg ->
+    String xml =
+"""<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">$appName</string>
+    <string name="web_home_url">$webHomeUrl</string>
+    <drawable name="app_launcher">$appLauncher</drawable>
+    <drawable name="splash_img">$splashImg</drawable>
+</resources>
+"""
+    File file = new File("app/src/main/res/values/config_args.xml")
+    if (!file.exists()) { file.createNewFile() }
+    file.write(xml)
+}
+
+/*
+* 将证书相关的信息写入文件keystore_info.xml
+* */
+ext.writeSignInfo = { storeFile, storePassword, keyPassword, keyAlias ->
+    String xml =
+"""<?xml version="1.0" encoding="utf-8"?>
+<signInfo>
+    <storeFile>$storeFile</storeFile>
+    <storePassword>$storePassword</storePassword>
+    <keyPassword>$keyPassword</keyPassword>
+    <keyAlias>$keyAlias</keyAlias>
+</signInfo>
+"""
+    File file = new File("keystore_info.xml")
+    if (!file.exists()) { file.createNewFile() }
+    file.write(xml)
+}
+
+/**
+ * 复制文件
+ * */
+ext.copyFile = { File inputFile, File outputFile, boolean toOverwrite = false ->
+    if (!inputFile.exists()) {
+        throw new FileNotFoundException("Template file does not exist: ${inputFile.getAbsolutePath()}")
+    }
+    outputFile.getParentFile().mkdirs()
+    if (toOverwrite || !outputFile.exists()) {
+        outputFile.bytes = inputFile.readBytes()
+    }
+}
+
+/**
+ *  删除文件或文件夹
+ *  */
+ext.removeFile = { File f ->
+    if (!f.exists()){
+        throw new FileNotFoundException("file does not exist: ${f.getAbsolutePath()}")
+    }
+    if (f.isDirectory()) { f.listFiles().each { removeFile(it) } }
+    f.delete()
+}
+
+
+
+
+
+

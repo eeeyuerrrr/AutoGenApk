@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">柳州项目库</string>
+    <string name="web_home_url">http://222.84.136.132:7001/ProMgrTH/phone/showPhone.action</string>
+    <drawable name="app_launcher">@mipmap/ic_launcher</drawable>
+    <drawable name="splash_img">@mipmap/splash_img</drawable>
+</resources>
